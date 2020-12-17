@@ -1,0 +1,57 @@
+version: '3'
+services:
+  webserver:
+    image: nginx:mainline-alpine
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - $PWD/web-root:/var/www/html
+      - $PWD/nginx-conf:/etc/nginx/conf.d
+      - $PWD/certbot-etc:/etc/letsencrypt
+      - $PWD/certbot-var:/var/lib/letsencrypt
+      - $PWD/dhparam:/etc/ssl/certs
+    depends_on:
+      - javaapi
+    networks:
+      - app-network
+
+  javaapi:
+    container_name: javaapi
+    image: avneet7193/java_api
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - $PWD/certbot-etc:/etc/letsencrypt
+      - $PWD/certbot-var:/var/lib/letsencrypt
+      - $PWD/web-root:/var/www/html
+    depends_on:
+      - webserver
+    command: certonly --webroot --webroot-path=/var/www/html  --agree-tos --no-eff-email --force-renewal -d 35.183.114.97 -d www.35.183.114.97
+
+volumes:
+ certbot-etc:
+ certbot-var:
+ web-root:
+   driver: local
+   driver_opts:
+     type: none
+     device: /home/ec2-user/views/
+     o: bind
+ dhparam:
+   driver: local
+   driver_opts:
+     type: none
+     device: /home/ec2-user/dhparam/
+     o: bind
+
+networks:
+ app-network:
+   driver: bridge
